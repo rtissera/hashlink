@@ -70,3 +70,9 @@ if(WIN32)
         add_subdirectory(video)
     endif()
 endif()
+
+option(WITH_VULKAN "Build vulkan.hdll." ON)
+if(WITH_VULKAN)
+    add_subdirectory(vulkan)
+endif()
+
