@@ -1,4 +1,4 @@
-#define HL_NAME(n) vk_##n
+#define HL_NAME(n) vulkan_##n
 #include <hl.h>
 
 #ifdef HL_VULKAN
@@ -27,6 +27,18 @@
 #	include <vulkan/vulkan.h>
 #endif
 
+#ifndef HL_VULKAN_APP_NAME
+#define HL_VULKAN_APP_NAME "HashLink Vulkan App"
+#endif
+
+#ifndef HL_VULKAN_ENGINE_NAME
+#define HL_VULKAN_ENGINE_NAME "HashLink Vulkan Engine"
+#endif
+
+#ifndef VK_ALLOC
+#define VK_ALLOC hl_alloc_bytes
+#endif
+
 // Note : Might need to deal with vkGetInstanceProcAddr ?
 
 static int VKLoadAPI() {
@@ -39,7 +51,7 @@ static int VKLoadAPI() {
 	return 0;
 }
 
-// helpers to store marshall Vulkan structures
+// helpers to store and marshall Vulkan structures
 
 static vdynamic *alloc_i32(int v) {
 	vdynamic *ret;
@@ -60,14 +72,14 @@ static vdynamic *alloc_ptr(void* ptr) {
 
 
 // Used for validating return values of Vulkan API calls.
-#define VK_CHECK_RESULT(f) 																\
-{																						\
-    VkResult res = (f);																	\
-    if (res != VK_SUCCESS)																\
-    {																					\
-        printf("Fatal : VkResult is %d in %s at line %d\n", res,  __FILE__, __LINE__);	\
-        assert(res == VK_SUCCESS);														\
-    }																					\
+#define VK_CHECK_RESULT(f) 																	\
+{																							\
+    VkResult res = (f);																		\
+    if (res != VK_SUCCESS)																	\
+    {																						\
+        hl_error("Fatal : VkResult is %d in %s at line %d\n", res,  __FILE__, __LINE__);	\
+        assert(res == VK_SUCCESS);															\
+    }																						\
 }
 
 // globals
@@ -75,25 +87,34 @@ HL_PRIM bool HL_NAME(vk_init)() {
 	return VKLoadAPI() == 0;
 }
 
-HL_PRIM vdynamic* HL_NAME(vk_create_instance)() {
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Vulkan Types
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+#define TVKINSTANCE _ABSTRACT(vk_instance)
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Instances API
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// vkCreateInstance
+HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
 	VkApplicationInfo appInfo;
 	VkInstanceCreateInfo createInfo;
 	unsigned int extensionCount = 0;
 	VkExtensionProperties* extensions = NULL;
+	VkInstance* instance = NULL;
 
 	// Fill app info
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "";
+	appInfo.pApplicationName = HL_VULKAN_APP_NAME;
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "";
+	appInfo.pEngineName = HL_VULKAN_ENGINE_NAME;
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	// Enumerate available extensions
-	vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
-	if (extensionCount > 0)
-		extensions = (VkExtensionProperties*)malloc(extensionCount*sizeof(VkExtensionProperties));
-	vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensions);	
 
 	// Fill create info
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -102,20 +123,24 @@ HL_PRIM vdynamic* HL_NAME(vk_create_instance)() {
 	// TODO add support for validation layers
 	createInfo.enabledLayerCount = 0;
 
+	// Enumerate available extensions
 	if (!SDL_Vulkan_GetInstanceExtensions(NULL,  &extensionCount, NULL)) {
-		printf("Fatal : SDL_Vulkan_GetInstanceExtensions (1) error\n");
-		return NULL;
+		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (1) error\n");
+		return instance;
 	}
 
 	const char **extensionsNames = malloc(sizeof(const char *) * extensionCount);
-	if(!names) {
-		printf("Fatal : Cannot allocate extensionsNames\n");
-		return NULL;
+	if(!extensionsNames) {
+		hl_error("Fatal : Cannot allocate extensionsNames\n");
+		return instance;
 	}
 
 	if(!SDL_Vulkan_GetInstanceExtensions(NULL, &count, extensionsNames)) {
-		printf("Fatal : SDL_Vulkan_GetInstanceExtensions (2) error\n");
-		return NULL;
+		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (2) error\n");
+		for (int i = 0 ; i < extensionCount ; i++)
+			free(extensionsNames[i]);
+		free(extensionsNames);
+		return instance;
 	}
 
 	// Now we can finish filling VkInstanceCreateInfo structure
@@ -125,65 +150,135 @@ HL_PRIM vdynamic* HL_NAME(vk_create_instance)() {
 	// TODO custom memory allocator ??
 	// VkAllocationCallbacks allocator;
 
-	VkInstance* pInstance = NULL;
-	VK_CHECK_RESULT(vkCreateInstance(&createInfo, NULL/*&allocator*/, pInstance));
+	VkInstance* instance = malloc(sizeof(VkInstance));
+	VK_CHECK_RESULT(vkCreateInstance(&createInfo, NULL/*&allocator*/, instance));
+
+	// Free memory
+	for (int i = 0 ; i < extensionCount ; i++)
+		free(extensionsNames[i]);
+	free(extensionsNames);
 
 	// Return VkInstance object
-	free(extensionsNames);
-	return alloc_ptr((void*)pInstance);
+	return instance;
 }
 
-HL_PRIM void HL_NAME(vk_destroy_instance)(vdynamic* i) {
-	VK_CHECK_RESULT(vkDestroyInstance((VkInstance*)i->v.ptr, NULL));
+HL_PRIM void HL_NAME(vk_destroy_instance)(VkInstance* instance) {
+	if (instance != NULL) {
+		VK_CHECK_RESULT(vkDestroyInstance(instance, NULL));
+		free(instance);
+	}
 }
 
-HL_PRIM varray* HL_NAME(vk_enumerate_physical_devices)(vdynamic* i) {
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Physical devices API
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// vkEnumeratePhysicalDevices
+HL_PRIM varray *HL_NAME(vk_enumerate_physical_devices)(vdynamic* i) {
 	unsigned int deviceCount = 0;
-	VkPhysicalDevice* devices;
+	VkPhysicalDevice* devices = NULL;
 
 	// Retrieve number of physical devices
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices((VkInstance*)i->v.ptr, NULL, &deviceCount));
 	if (deviceCount == 0) {
-    	printf("Fatal : vkEnumeratePhysicalDevices failed to find GPUs with Vulkan support!\n");
+		hl_error("Fatal : vkEnumeratePhysicalDevices failed to find GPUs with Vulkan support!\n")
     	return NULL;
 	}
 
 	// Retrieve list of physical devices
-	devices = malloc(sizeof(VkPhysicalDevice * deviceCount));
+	devices = VK_ALLOC(sizeof(VkPhysicalDevice) * deviceCount);
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices));
-	free(devices);
 
 	// Marshall to VM
 	varray* aDevices = hl_alloc_array(&hlc_dynamic, deviceCount);
 	for (int i = 0 ; i < deviceCount ; i++) {
-		hl_aptr(a,vdynamic*)[k] = alloc_ptr(devices[i]);
+		hl_aptr(a,vdynamic*)[i] = alloc_ptr(&devices[i]);
 	}
 
 	// Return VkPhysicalDevice list
 	return aDevices;
 }
 
-/*
-HL_PRIM vdynamic *HL_NAME(gl_create_program)() {
-	int v = glCreateProgram();
-	if( v == 0 ) return NULL;
-	return alloc_i32(v);
+// vkGetPhysicalDeviceProperties
+HL_PRIM vdynamic *HL_NAME(vk_get_physical_device_properties)( vdynamic *physicalDevice ) {
+	VkPhysicalDeviceProperties* properties = VK_ALLOC(sizeof(VkPhysicalDeviceProperties));
+	vkGetPhysicalDeviceProperties(d->v.ptr, &properties);
+	return alloc_ptr(properties);
 }
 
-HL_PRIM void HL_NAME(gl_delete_program)( vdynamic *s ) {
-	glDeleteProgram(s->v.i);
+// vkGetPhysicalDeviceQueueFamilyProperties
+HL_PRIM varray *HL_NAME(vk_get_physical_device_queue_family_properties)( vdynamic *physicalDevice) {
+	unsigned int queueFamilyPropertyCount;
+	VkQueueFamilyProperties* queueFamilyProperties = NULL;
+
+	// Get count
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->v.ptr, &queueFamilyPropertyCount, queueFamilyProperties);
+
+	if (queueFamilyPropertyCount > 0)
+	{
+		// Alloc 
+		queueFamilyProperties = VK_ALLOC(sizeof(VkQueueFamilyProperties) * queueFamilyPropertyCount);
+
+		// Query 
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->v.ptr, &queueFamilyPropertyCount, queueFamilyProperties);
+
+		// Copy
+		varray* aQueueFamilyProperties = hl_alloc_array(&hlc_dynamic, queueFamilyPropertyCount);
+		for (int i = 0 ; i < queueFamilyPropertyCount ; i++) {
+			hl_aptr(a,vdynamic*)[i] = alloc_ptr(&queueFamilyProperties[i]);
+		}
+
+		return aQueueFamilyProperties;
+	}
+
+	return NULL;
 }
 
-HL_PRIM void HL_NAME(gl_bind_frag_data_location)( vdynamic *p, int colNum, vstring *name ) {
-	char *cname = hl_to_utf8(name->bytes);
-	glBindFragDataLocation(p->v.i, colNum, cname);
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Devices API
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+HL_PRIM vdynamic *HL_NAME(vk_create_device)( vdynamic *physicalDevice ) {
+	VkDeviceCreateInfo deviceCreateInfo;
+	VkDevice* device = VK_ALLOC(sizeof(VkDevice));
+	// TODO fill VkDeviceCreateInfo structure
+
+	VK_CHECK_RESULT(vkCreateDevice(physicalDevice->v.ptr, &deviceCreateInfo, NULL, device));
+	return alloc_ptr(device);
 }
 
-HL_PRIM void HL_NAME(gl_attach_shader)( vdynamic *p, vdynamic *s ) {
-	glAttachShader(p->v.i, s->v.i);
+HL_PRIM vdynamic *HL_NAME(vk_device_wait_idle)( vdynamic *device ) {
+	VkResult result;
+	result = vkDeviceWaitIdle(device->v.ptr);
+	return alloc_i32(result);
 }
 
-HL_PRIM void HL_NAME(gl_link_program)( vdynamic *p ) {
+HL_PRIM void HL_NAME(vk_destroy_device)( vdynamic *device ) {
+	vkDestroyDevice(device->v.ptr, NULL);
+}
+
+// Queues API
+
+HL_PRIM vdynamic *HL_NAME(vk_get_device_queue)( vdynamic *device, int queueFamilyIndex, int queueIndex) {
+	VkQueue queue;
+	vkGetDeviceQueue(device->v.ptr, queueFamilyIndex, queueIndex, &queue);
+	return alloc_ptr(queue);
+}
+
+HL_PRIM vdynamic *HL_NAME(vk_queue_wait_idle)( vdynamic *queue ) {
+	VkResult result = vkQueueWaitIdle(queue->v.ptr)
+	return alloc_i32(result);
+}
+
+// Command Buffers API
+
+HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device, )
+
+/*HL_PRIM void HL_NAME(gl_link_program)( vdynamic *p ) {
 	glLinkProgram(p->v.i);
 }
 
@@ -618,7 +713,7 @@ DEFINE_PRIM(_I32, gl_get_config_parameter, _I32);
 */
 
 DEFINE_PRIM(_BOOL, vk_init,_NO_ARG);
-DEFINE_PRIM(_DYN, vk_create_instance, NO_ARG);
-DEFINE_PRIM(_VOID, vk_destroy_instance, _DYN);
+DEFINE_PRIM(TVKINSTANCE, vk_create_instance, NO_ARG);
+DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
 
 #endif
