@@ -9,7 +9,9 @@ class VkInstance {
 	var ptr : VkInstancePtr;
 
 	public function new() {
-		vkInit();
+		if (vkInit() == false) {
+			throw "No Vulkan support";
+		}
 		ptr = vkCreateInstance();
 	}
 
@@ -17,7 +19,7 @@ class VkInstance {
 		vkDestroyInstance( ptr );
 	}
 
-	static function vkInit() : Void { }
+	static function vkInit() : Bool { return false; }
 
 	private static function vkCreateInstance() : VkInstancePtr {
 		return null;

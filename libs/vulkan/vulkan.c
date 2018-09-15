@@ -130,7 +130,7 @@ HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
 	createInfo.enabledLayerCount = 0;
 
 	// Enumerate available extensions
-	if (!SDL_Vulkan_GetInstanceExtensions(NULL,  &extensionCount, NULL)) {
+	if (!SDL_Vulkan_GetInstanceExtensions(NULL, &extensionCount, NULL)) {
 		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (1) error\n");
 		return instance;
 	}
