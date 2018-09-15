@@ -1,19 +1,32 @@
 package vulkan;
 
 private typedef VkInstancePtr = hl.Abstract<"vk_instance">;
-private typedef HapticPtr = hl.Abstract<"sdl_haptic">;
+//private typedef HapticPtr = hl.Abstract<"sdl_haptic">;
 
 @:hlNative("vulkan")
-class GameController {
+class VkInstance {
 
 	var ptr : VkInstancePtr;
 
+	public function new() {
+		vkInit();
+		ptr = vkCreateInstance();
+	}
+
+	public function destroy() {
+		vkDestroyInstance( ptr );
+	}
+
+	static function vkInit() : Void { }
+
+	private static function vkCreateInstance() : VkInstancePtr {
+		return null;
+	}
+
+	private static function vkDestroyInstance( instance : VkInstancePtr ) : Void { }
+
 /*	public var id(get,never) : Int;
 	public var name(get,never) : String;
-
-	public function new( index : Int ){
-		ptr = gctrlOpen( index );
-	}
 
 	public inline function getAxis( axisId : Int ){
 		return gctrlGetAxis(ptr,axisId);
@@ -54,10 +67,6 @@ class GameController {
 
 	static function gctrlCount() : Int {
 		return 0;
-	}
-
-	static function gctrlOpen( idx : Int ) : GameControllerPtr {
-		return null;
 	}
 
 	static function gctrlClose( controller : GameControllerPtr ){

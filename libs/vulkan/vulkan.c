@@ -1,10 +1,15 @@
 #define HL_NAME(n) vulkan_##n
+
 #include <hl.h>
+#include <assert.h>
+
+//hack
+#define HL_VULKAN
 
 #ifdef HL_VULKAN
 
 #if defined(HL_IOS) || defined (HL_TVOS) || defined(HL_MAC)
-#	error "No Vulkan support (use MoltenVK)"
+//#	error "No Vulkan support (use MoltenVK)"
 #	include <SDL2/SDL.h>
 #	include <SDL2/SDL_syswm.h>
 #	include <SDL2/SDL_vulkan.h>
@@ -92,7 +97,8 @@ HL_PRIM bool HL_NAME(vk_init)() {
 // Vulkan Types
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-#define TVKINSTANCE _ABSTRACT(vk_instance)
+#define TVKINSTANCE		_ABSTRACT(vk_instance)
+#define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -129,43 +135,43 @@ HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
 		return instance;
 	}
 
-	const char **extensionsNames = malloc(sizeof(const char *) * extensionCount);
-	if(!extensionsNames) {
-		hl_error("Fatal : Cannot allocate extensionsNames\n");
+	const char **extensionNames = malloc(sizeof(const char *) * extensionCount);
+	if(!extensionNames) {
+		hl_error("Fatal : Cannot allocate extensionNames\n");
 		return instance;
 	}
 
-	if(!SDL_Vulkan_GetInstanceExtensions(NULL, &count, extensionsNames)) {
+	if(!SDL_Vulkan_GetInstanceExtensions(NULL, &extensionCount, extensionNames)) {
 		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (2) error\n");
 		for (int i = 0 ; i < extensionCount ; i++)
-			free(extensionsNames[i]);
-		free(extensionsNames);
+			free((void*)extensionNames[i]);
+		free(extensionNames);
 		return instance;
 	}
 
 	// Now we can finish filling VkInstanceCreateInfo structure
 	createInfo.enabledExtensionCount = extensionCount;
-	createInfo.ppEnabledExtensionsNames = extensionsNames;
+	createInfo.ppEnabledExtensionNames = extensionNames;
 
 	// TODO custom memory allocator ??
 	// VkAllocationCallbacks allocator;
 
-	VkInstance* instance = malloc(sizeof(VkInstance));
+	instance = malloc(sizeof(VkInstance));
 	VK_CHECK_RESULT(vkCreateInstance(&createInfo, NULL/*&allocator*/, instance));
 
 	// Free memory
 	for (int i = 0 ; i < extensionCount ; i++)
-		free(extensionsNames[i]);
-	free(extensionsNames);
+		free((void*)extensionNames[i]);
+	free(extensionNames);
 
 	// Return VkInstance object
 	return instance;
 }
 
-HL_PRIM void HL_NAME(vk_destroy_instance)(VkInstance* instance) {
-	if (instance != NULL) {
-		VK_CHECK_RESULT(vkDestroyInstance(instance, NULL));
-		free(instance);
+HL_PRIM void HL_NAME(vk_destroy_instance)(VkInstance* pInstance) {
+	if (pInstance != NULL) {
+		vkDestroyInstance(*pInstance, NULL);
+		free(pInstance); // TODO CHECK THAT (Not sure...)
 	}
 }
 
@@ -179,22 +185,24 @@ HL_PRIM void HL_NAME(vk_destroy_instance)(VkInstance* instance) {
 HL_PRIM varray *HL_NAME(vk_enumerate_physical_devices)(vdynamic* i) {
 	unsigned int deviceCount = 0;
 	VkPhysicalDevice* devices = NULL;
+	VkInstance* pInstance = (VkInstance*)i->v.ptr;
+	VkInstance instance = *pInstance;
 
 	// Retrieve number of physical devices
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices((VkInstance*)i->v.ptr, NULL, &deviceCount));
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, NULL));
 	if (deviceCount == 0) {
-		hl_error("Fatal : vkEnumeratePhysicalDevices failed to find GPUs with Vulkan support!\n")
-    	return NULL;
+		hl_error("Fatal : vkEnumeratePhysicalDevices failed to find GPUs with Vulkan support!\n");
+		return NULL;
 	}
 
 	// Retrieve list of physical devices
-	devices = VK_ALLOC(sizeof(VkPhysicalDevice) * deviceCount);
+	devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices));
 
 	// Marshall to VM
-	varray* aDevices = hl_alloc_array(&hlc_dynamic, deviceCount);
+	varray* aDevices = hl_alloc_array(&hlt_dyn, deviceCount);
 	for (int i = 0 ; i < deviceCount ; i++) {
-		hl_aptr(a,vdynamic*)[i] = alloc_ptr(&devices[i]);
+		hl_aptr(aDevices,vdynamic*)[i] = alloc_ptr(&devices[i]);
 	}
 
 	// Return VkPhysicalDevice list
@@ -203,8 +211,8 @@ HL_PRIM varray *HL_NAME(vk_enumerate_physical_devices)(vdynamic* i) {
 
 // vkGetPhysicalDeviceProperties
 HL_PRIM vdynamic *HL_NAME(vk_get_physical_device_properties)( vdynamic *physicalDevice ) {
-	VkPhysicalDeviceProperties* properties = VK_ALLOC(sizeof(VkPhysicalDeviceProperties));
-	vkGetPhysicalDeviceProperties(d->v.ptr, &properties);
+	VkPhysicalDeviceProperties* properties = malloc(sizeof(VkPhysicalDeviceProperties));
+	vkGetPhysicalDeviceProperties(physicalDevice->v.ptr, properties);
 	return alloc_ptr(properties);
 }
 
@@ -219,15 +227,15 @@ HL_PRIM varray *HL_NAME(vk_get_physical_device_queue_family_properties)( vdynami
 	if (queueFamilyPropertyCount > 0)
 	{
 		// Alloc 
-		queueFamilyProperties = VK_ALLOC(sizeof(VkQueueFamilyProperties) * queueFamilyPropertyCount);
+		queueFamilyProperties = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyPropertyCount);
 
 		// Query 
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->v.ptr, &queueFamilyPropertyCount, queueFamilyProperties);
 
 		// Copy
-		varray* aQueueFamilyProperties = hl_alloc_array(&hlc_dynamic, queueFamilyPropertyCount);
+		varray* aQueueFamilyProperties = hl_alloc_array(&hlt_dyn, queueFamilyPropertyCount);
 		for (int i = 0 ; i < queueFamilyPropertyCount ; i++) {
-			hl_aptr(a,vdynamic*)[i] = alloc_ptr(&queueFamilyProperties[i]);
+			hl_aptr(aQueueFamilyProperties,vdynamic*)[i] = alloc_ptr(&queueFamilyProperties[i]);
 		}
 
 		return aQueueFamilyProperties;
@@ -244,7 +252,7 @@ HL_PRIM varray *HL_NAME(vk_get_physical_device_queue_family_properties)( vdynami
 
 HL_PRIM vdynamic *HL_NAME(vk_create_device)( vdynamic *physicalDevice ) {
 	VkDeviceCreateInfo deviceCreateInfo;
-	VkDevice* device = VK_ALLOC(sizeof(VkDevice));
+	VkDevice* device = malloc(sizeof(VkDevice));
 	// TODO fill VkDeviceCreateInfo structure
 
 	VK_CHECK_RESULT(vkCreateDevice(physicalDevice->v.ptr, &deviceCreateInfo, NULL, device));
@@ -270,15 +278,15 @@ HL_PRIM vdynamic *HL_NAME(vk_get_device_queue)( vdynamic *device, int queueFamil
 }
 
 HL_PRIM vdynamic *HL_NAME(vk_queue_wait_idle)( vdynamic *queue ) {
-	VkResult result = vkQueueWaitIdle(queue->v.ptr)
+	VkResult result = vkQueueWaitIdle(queue->v.ptr);
 	return alloc_i32(result);
 }
 
 // Command Buffers API
 
-HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device, )
+/*HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device, )
 
-/*HL_PRIM void HL_NAME(gl_link_program)( vdynamic *p ) {
+HL_PRIM void HL_NAME(gl_link_program)( vdynamic *p ) {
 	glLinkProgram(p->v.i);
 }
 
@@ -713,7 +721,9 @@ DEFINE_PRIM(_I32, gl_get_config_parameter, _I32);
 */
 
 DEFINE_PRIM(_BOOL, vk_init,_NO_ARG);
-DEFINE_PRIM(TVKINSTANCE, vk_create_instance, NO_ARG);
+DEFINE_PRIM(TVKINSTANCE, vk_create_instance, _NO_ARG);
 DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
+
+DEFINE_PRIM(_ARR, vk_enumerate_physical_devices, TVKINSTANCE);
 
 #endif
