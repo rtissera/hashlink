@@ -28,16 +28,18 @@ class Window {
 	public var displayMode(default, set) : DisplayMode;
 	public var visible(default, set) : Bool = true;
 
+	public function getWin() : WinPtr { return win; }
+
 	public function new( title : String, width : Int, height : Int ) {
 		while( true ) {
 			win = winCreate(width, height);
 			if( win == null ) throw "Failed to create window";
 			glctx = winGetGLContext(win);
-			if( glctx == null || !GL.init() || !testGL() ) {
+			/*if( glctx == null || !GL.init() || !testGL() ) {
 				destroy();
 				if( Sdl.onGlContextRetry() ) continue;
 				Sdl.onGlContextError();
-			}
+			}*/
 			break;
 		}
 		this.title = title;

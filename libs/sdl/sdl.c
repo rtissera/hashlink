@@ -366,6 +366,9 @@ DEFINE_PRIM(_BYTES, detect_keyboard_layout, _NO_ARG);
 
 // Window
 
+// hack
+#define HL_VULKAN
+
 HL_PRIM SDL_Window *HL_NAME(win_create)(int width, int height) {
 	SDL_Window *w;
 	// force window to match device resolution on mobile

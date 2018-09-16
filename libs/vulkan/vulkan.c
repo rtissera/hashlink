@@ -48,9 +48,13 @@
 
 static int VKLoadAPI() {
 	// Load vulkan library
+	SDL_Init(SDL_INIT_VIDEO); // Needed for Vulkan support
+	SDL_ClearError();
 	int result = SDL_Vulkan_LoadLibrary(NULL);
-	if (result != 0)
+	if (result != 0) {
+		printf("VKLoadAPI(): %s\n", SDL_GetError());
 		return 1;
+	}
 
 	// Everything is okay
 	return 0;
@@ -99,6 +103,7 @@ HL_PRIM bool HL_NAME(vk_init)() {
 ///////////////////////////////////////////////////////////////////////////////
 #define TVKINSTANCE		_ABSTRACT(vk_instance)
 #define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
+#define TWIN _ABSTRACT(sdl_window)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -107,7 +112,7 @@ HL_PRIM bool HL_NAME(vk_init)() {
 ///////////////////////////////////////////////////////////////////////////////
 
 // vkCreateInstance
-HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
+HL_PRIM VkInstance* HL_NAME(vk_create_instance)(SDL_Window* window) {
 	VkApplicationInfo appInfo;
 	VkInstanceCreateInfo createInfo;
 	unsigned int extensionCount = 0;
@@ -130,8 +135,10 @@ HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
 	createInfo.enabledLayerCount = 0;
 
 	// Enumerate available extensions
-	if (!SDL_Vulkan_GetInstanceExtensions(NULL, &extensionCount, NULL)) {
-		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (1) error\n");
+	SDL_ClearError();
+	if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, NULL)) {
+		printf("%s\n",SDL_GetError());
+		//hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (1) error\n");
 		return instance;
 	}
 
@@ -141,10 +148,8 @@ HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
 		return instance;
 	}
 
-	if(!SDL_Vulkan_GetInstanceExtensions(NULL, &extensionCount, extensionNames)) {
+	if(!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, extensionNames)) {
 		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (2) error\n");
-		for (int i = 0 ; i < extensionCount ; i++)
-			free((void*)extensionNames[i]);
 		free(extensionNames);
 		return instance;
 	}
@@ -160,8 +165,6 @@ HL_PRIM VkInstance* HL_NAME(vk_create_instance)() {
 	VK_CHECK_RESULT(vkCreateInstance(&createInfo, NULL/*&allocator*/, instance));
 
 	// Free memory
-	for (int i = 0 ; i < extensionCount ; i++)
-		free((void*)extensionNames[i]);
 	free(extensionNames);
 
 	// Return VkInstance object
@@ -721,7 +724,7 @@ DEFINE_PRIM(_I32, gl_get_config_parameter, _I32);
 */
 
 DEFINE_PRIM(_BOOL, vk_init,_NO_ARG);
-DEFINE_PRIM(TVKINSTANCE, vk_create_instance, _NO_ARG);
+DEFINE_PRIM(TVKINSTANCE, vk_create_instance, TWIN/*_NO_ARG*/);
 DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
 
 DEFINE_PRIM(_ARR, vk_enumerate_physical_devices, TVKINSTANCE);
