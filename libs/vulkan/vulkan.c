@@ -83,12 +83,12 @@ static vdynamic *alloc_ptr(void* ptr) {
 // Used for validating return values of Vulkan API calls.
 #define VK_CHECK_RESULT(f) 																	\
 {																							\
-    VkResult res = (f);																		\
-    if (res != VK_SUCCESS)																	\
-    {																						\
-        hl_error("Fatal : VkResult is %d in %s at line %d\n", res,  __FILE__, __LINE__);	\
-        assert(res == VK_SUCCESS);															\
-    }																						\
+	VkResult res = (f);																		\
+	if (res != VK_SUCCESS)																	\
+	{																						\
+		hl_error("Fatal : VkResult is %d in %s at line %d\n", res,  __FILE__, __LINE__);	\
+		assert(res == VK_SUCCESS);															\
+	}																						\
 }
 
 // globals
@@ -101,9 +101,9 @@ HL_PRIM bool HL_NAME(vk_init)() {
 // Vulkan Types
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-#define TVKINSTANCE		_ABSTRACT(vk_instance)
+#define TVKINSTANCE			_ABSTRACT(vk_instance)
 #define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
-#define TWIN _ABSTRACT(sdl_window)
+#define TSDLWINDOW			_ABSTRACT(sdl_window)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -184,32 +184,43 @@ HL_PRIM void HL_NAME(vk_destroy_instance)(VkInstance* pInstance) {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// vkEnumeratePhysicalDevices
-HL_PRIM varray *HL_NAME(vk_enumerate_physical_devices)(vdynamic* i) {
-	unsigned int deviceCount = 0;
-	VkPhysicalDevice* devices = NULL;
-	VkInstance* pInstance = (VkInstance*)i->v.ptr;
-	VkInstance instance = *pInstance;
+// vkEnumeratePhysicalDevices wrapper
+static void vk_enumerate_physical_devices(VkInstance instance, VkPhysicalDevice** ppDevices, unsigned int *pDeviceCount) {
 
 	// Retrieve number of physical devices
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, NULL));
-	if (deviceCount == 0) {
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, pDeviceCount, NULL));
+	if (*pDeviceCount == 0) {
 		hl_error("Fatal : vkEnumeratePhysicalDevices failed to find GPUs with Vulkan support!\n");
-		return NULL;
+		return;
 	}
 
 	// Retrieve list of physical devices
-	devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices));
+	*ppDevices = malloc(sizeof(VkPhysicalDevice) * (*pDeviceCount));
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, pDeviceCount, *ppDevices));
+}
 
-	// Marshall to VM
-	varray* aDevices = hl_alloc_array(&hlt_dyn, deviceCount);
-	for (int i = 0 ; i < deviceCount ; i++) {
-		hl_aptr(aDevices,vdynamic*)[i] = alloc_ptr(&devices[i]);
+HL_PRIM VkPhysicalDevice* HL_NAME(vk_enumerate_physical_device_next)(VkInstance *pInstance)
+{
+	VkPhysicalDevice* pDevices = NULL;
+	VkPhysicalDevice* result = NULL;
+	VkInstance instance = *pInstance;
+	static unsigned int deviceCount = 0;
+	static unsigned int deviceIndex = 0;
+
+	if (deviceIndex > deviceCount)
+		deviceIndex = 0;
+
+	// Call inner enumerate at first call only
+	if (deviceIndex == 0)
+		vk_enumerate_physical_devices(instance, &pDevices, &deviceCount);
+
+	// Iterate over found devices at each call
+	if (deviceIndex >= deviceCount) {
+		deviceIndex = 0;
+	} else {
+		result = &pDevices[deviceIndex++];
 	}
-
-	// Return VkPhysicalDevice list
-	return aDevices;
+	return result;
 }
 
 // vkGetPhysicalDeviceProperties
@@ -724,9 +735,9 @@ DEFINE_PRIM(_I32, gl_get_config_parameter, _I32);
 */
 
 DEFINE_PRIM(_BOOL, vk_init,_NO_ARG);
-DEFINE_PRIM(TVKINSTANCE, vk_create_instance, TWIN/*_NO_ARG*/);
+DEFINE_PRIM(TVKINSTANCE, vk_create_instance, TSDLWINDOW);
 DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
 
-DEFINE_PRIM(_ARR, vk_enumerate_physical_devices, TVKINSTANCE);
+DEFINE_PRIM(TVKPHYSICALDEVICE, vk_enumerate_physical_device_next, TVKINSTANCE);
 
 #endif

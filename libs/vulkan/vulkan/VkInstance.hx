@@ -10,6 +10,10 @@ class VkInstance {
 
 	var ptr : VkInstancePtr;
 
+	public function getPtr() : VkInstancePtr {
+		return ptr;
+	}
+
 	public function new(w : sdl.Window) {
 		if (vkInit() == false) {
 			throw "No Vulkan support";
