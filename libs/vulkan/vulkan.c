@@ -195,15 +195,15 @@ static void vk_enumerate_physical_devices(VkInstance instance, VkPhysicalDevice*
 	}
 
 	// Retrieve list of physical devices
-	*ppDevices = malloc(sizeof(VkPhysicalDevice) * (*pDeviceCount));
+	*ppDevices = malloc(sizeof(VkPhysicalDevice*) * (*pDeviceCount));
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, pDeviceCount, *ppDevices));
 }
 
 HL_PRIM VkPhysicalDevice* HL_NAME(vk_enumerate_physical_device_next)(VkInstance *pInstance)
 {
-	VkPhysicalDevice* pDevices = NULL;
 	VkPhysicalDevice* result = NULL;
 	VkInstance instance = *pInstance;
+	static VkPhysicalDevice* pDevices = NULL;
 	static unsigned int deviceCount = 0;
 	static unsigned int deviceIndex = 0;
 
@@ -223,11 +223,34 @@ HL_PRIM VkPhysicalDevice* HL_NAME(vk_enumerate_physical_device_next)(VkInstance 
 	return result;
 }
 
+typedef struct {
+	hl_type *t;
+	uint32_t apiVersion;
+	uint32_t driverVersion;
+	uint32_t vendorID;
+	uint32_t deviceID;
+	uint32_t deviceType;
+	char* deviceName;
+	const char pipelineCacheUUID[VK_UUID_SIZE];
+} _VkPhysicalDeviceProperties;
+
+#define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
+
 // vkGetPhysicalDeviceProperties
-HL_PRIM vdynamic *HL_NAME(vk_get_physical_device_properties)( vdynamic *physicalDevice ) {
-	VkPhysicalDeviceProperties* properties = malloc(sizeof(VkPhysicalDeviceProperties));
-	vkGetPhysicalDeviceProperties(physicalDevice->v.ptr, properties);
-	return alloc_ptr(properties);
+HL_PRIM void HL_NAME(vk_get_physical_device_properties)( VkPhysicalDevice *pPhysicalDevice, _VkPhysicalDeviceProperties *pProperties ) {
+
+	// Call Vulkan API function
+	VkPhysicalDeviceProperties properties;
+	vkGetPhysicalDeviceProperties(*pPhysicalDevice, &properties);
+
+	pProperties->apiVersion = properties.apiVersion;
+	pProperties->driverVersion = properties.driverVersion;
+	pProperties->vendorID = properties.vendorID;
+	pProperties->deviceID = properties.deviceID;
+	pProperties->deviceType = properties.deviceType;
+	pProperties->deviceName = (char*)malloc(strlen(properties.deviceName)+1);
+	strcpy(pProperties->deviceName, properties.deviceName);
+	memcpy((void*)pProperties->pipelineCacheUUID, properties.pipelineCacheUUID, VK_UUID_SIZE);
 }
 
 // vkGetPhysicalDeviceQueueFamilyProperties
@@ -739,5 +762,5 @@ DEFINE_PRIM(TVKINSTANCE, vk_create_instance, TSDLWINDOW);
 DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
 
 DEFINE_PRIM(TVKPHYSICALDEVICE, vk_enumerate_physical_device_next, TVKINSTANCE);
-
+DEFINE_PRIM(_VOID, vk_get_physical_device_properties, TVKPHYSICALDEVICE TVKPHYSICALDEVICEPROPERTIES)
 #endif
