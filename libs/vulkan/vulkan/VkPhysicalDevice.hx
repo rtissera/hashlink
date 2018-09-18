@@ -15,7 +15,7 @@ private class VkPhysicalDeviceProperties {
 	public var pipelineCacheUUID : hl.Bytes; 
 
 	public function new() {
-		pipelineCacheUUID = new hl.Bytes(VkPhysicalDevice.VK_UUID_SIZE);
+		//pipelineCacheUUID = new hl.Bytes(VkPhysicalDevice.VK_UUID_SIZE);
 	}
 }
 

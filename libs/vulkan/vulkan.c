@@ -231,7 +231,7 @@ typedef struct {
 	uint32_t deviceID;
 	uint32_t deviceType;
 	char* deviceName;
-	const char pipelineCacheUUID[VK_UUID_SIZE];
+	char* pipelineCacheUUID;
 } _VkPhysicalDeviceProperties;
 
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
@@ -249,6 +249,7 @@ HL_PRIM void HL_NAME(vk_get_physical_device_properties)( VkPhysicalDevice *pPhys
 	pProperties->deviceID = properties.deviceID;
 	pProperties->deviceType = properties.deviceType;
 	pProperties->deviceName = (char*)malloc(strlen(properties.deviceName)+1);
+	pProperties->pipelineCacheUUID = (char*)malloc(VK_UUID_SIZE);
 	strcpy(pProperties->deviceName, properties.deviceName);
 	memcpy((void*)pProperties->pipelineCacheUUID, properties.pipelineCacheUUID, VK_UUID_SIZE);
 }
