@@ -234,6 +234,22 @@ typedef struct {
 	char* pipelineCacheUUID;
 } _VkPhysicalDeviceProperties;
 
+typedef struct {
+	hl_type *t;
+	uint32_t	width;
+	uint32_t	height;
+	uint32_t	depth;
+} _VkExtent3D;
+
+typedef struct 
+{
+	hl_type *t;
+	VkQueueFlags queueFlags;
+	uint32_t queueCount;
+	uint32_t timestampValidBits;
+	VkExtent3D minImageTransferGranularity;
+} _VkQueueFamilyProperties;
+
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 
 // vkGetPhysicalDeviceProperties
@@ -255,12 +271,13 @@ HL_PRIM void HL_NAME(vk_get_physical_device_properties)( VkPhysicalDevice *pPhys
 }
 
 // vkGetPhysicalDeviceQueueFamilyProperties
-HL_PRIM varray *HL_NAME(vk_get_physical_device_queue_family_properties)( vdynamic *physicalDevice) {
-	unsigned int queueFamilyPropertyCount;
-	VkQueueFamilyProperties* queueFamilyProperties = NULL;
-
+HL_PRIM varray *HL_NAME(vk_get_physical_device_queue_family_properties)( VkPhysicalDevice *pPhysicalDevice) {
 	// Get count
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->v.ptr, &queueFamilyPropertyCount, queueFamilyProperties);
+	unsigned int queueFamilyPropertyCount = 0;
+	VkQueueFamilyProperties* queueFamilyProperties = NULL;
+	vkGetPhysicalDeviceQueueFamilyProperties(*pPhysicalDevice, &queueFamilyPropertyCount, NULL);
+
+	varray *a = hl_alloc_array(&hlt_dyn, queueFamilyPropertyCount);
 
 	if (queueFamilyPropertyCount > 0)
 	{
@@ -268,17 +285,18 @@ HL_PRIM varray *HL_NAME(vk_get_physical_device_queue_family_properties)( vdynami
 		queueFamilyProperties = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyPropertyCount);
 
 		// Query 
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->v.ptr, &queueFamilyPropertyCount, queueFamilyProperties);
-
-		// Copy
-		varray* aQueueFamilyProperties = hl_alloc_array(&hlt_dyn, queueFamilyPropertyCount);
-		for (int i = 0 ; i < queueFamilyPropertyCount ; i++) {
-			hl_aptr(aQueueFamilyProperties,vdynamic*)[i] = alloc_ptr(&queueFamilyProperties[i]);
-		}
-
-		return aQueueFamilyProperties;
+		vkGetPhysicalDeviceQueueFamilyProperties(*pPhysicalDevice, &queueFamilyPropertyCount, queueFamilyProperties);
 	}
 
+	for (int i = 0 ; i < queueFamilyPropertyCount ; i++) {
+		_VkQueueFamilyProperties* p = (_VkQueueFamilyProperties*)malloc(sizeof(_VkQueueFamilyProperties));
+		p->queueFlags = queueFamilyProperties[i].queueFlags;
+		p->queueCount = queueFamilyProperties[i].queueCount;
+		p->timestampValidBits = queueFamilyProperties[i].timestampValidBits;
+		p->minImageTransferGranularity = queueFamilyProperties[i].minImageTransferGranularity;
+		hl_aptr(a, vdynamic*)[i] = p;
+	}
+	// TODO _VkQueueFamilyProperties *pQueueFamilyProperties ;
 	return NULL;
 }
 
@@ -764,4 +782,5 @@ DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
 
 DEFINE_PRIM(TVKPHYSICALDEVICE, vk_enumerate_physical_device_next, TVKINSTANCE);
 DEFINE_PRIM(_VOID, vk_get_physical_device_properties, TVKPHYSICALDEVICE TVKPHYSICALDEVICEPROPERTIES)
+DEFINE_PRIM(_ARR, vk_get_physical_device_queue_family_properties, TVKPHYSICALDEVICE)
 #endif
