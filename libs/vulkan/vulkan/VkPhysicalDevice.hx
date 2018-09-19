@@ -176,6 +176,14 @@ private class VkQueueFamilyProperties
 
 @:hlNative("vulkan")
 class VkPhysicalDevice {
+
+
+	private static var VK_QUEUE_GRAPHICS_BIT = 0x00000001;
+	private static var VK_QUEUE_COMPUTE_BIT = 0x00000002;
+	private static var VK_QUEUE_TRANSFER_BIT = 0x00000004;
+	private static var VK_QUEUE_SPARSE_BINDING_BIT = 0x00000008;
+	private static var VK_QUEUE_PROTECTED_BIT = 0x00000010;
+
 	public static var VK_UUID_SIZE : Int = 16;
 	public static var VK_MAX_PHYSICAL_DEVICE_NAME_SIZE : Int = 256;
 
@@ -200,11 +208,12 @@ class VkPhysicalDevice {
 		retrieveProperties();
 
 		// Retrieve queue family properties
-		queueFamilyProperties = new Array<VkQueueFamilyProperties>();
-		var qfp : hl.NativeArray<VkQueueFamilyProperties> = vkGetPhysicalDeviceQueueFamilyProperties(ptr);
-		var iterator : hl.NativeArrayIterator<VkQueueFamilyProperties> = new hl.NativeArrayIterator<VkQueueFamilyProperties>(qfp);
-		while (iterator.hasNext())
-			queueFamilyProperties.push(iterator.next());
+		enumerateQueueFamilyProperties();
+
+		// Print properties and QFP
+		printProperties();
+		for (qfp in queueFamilyProperties)
+			printQueueFamilyProperties(qfp);
 	}
 
 	private function retrieveProperties() {
@@ -228,6 +237,23 @@ class VkPhysicalDevice {
 		trace("pipelineCacheUUID " + pipelineCacheUUID);
 	}
 
+	public function printQueueFamilyProperties(p : VkQueueFamilyProperties) {
+		trace("Queue family properties...");
+		var flags : Int = p.queueFlags;
+		var flagsString : String = "";
+		if ((flags & VK_QUEUE_GRAPHICS_BIT)!=0) flagsString += "VK_QUEUE_GRAPHICS_BIT";
+		if ((flags & VK_QUEUE_COMPUTE_BIT)!=0) flagsString += " | VK_QUEUE_COMPUTE_BIT";
+		if ((flags & VK_QUEUE_TRANSFER_BIT)!=0) flagsString += " | VK_QUEUE_TRANSFER_BIT";
+		if ((flags & VK_QUEUE_SPARSE_BINDING_BIT)!=0) flagsString += " | VK_QUEUE_SPARSE_BINDING_BIT";
+		if ((flags & VK_QUEUE_PROTECTED_BIT)!=0) flagsString += " | VK_QUEUE_PROTECTED_BIT";
+		trace("queueFlags = " + flagsString);
+		trace("queueCount = " + p.queueCount);
+		trace("timestampValidBits = " + p.timestampValidBits);
+		trace("minImageTransferGranularity.width = " + p.minImageTransferGranularity.width);
+		trace("minImageTransferGranularity.height = " + p.minImageTransferGranularity.height);
+		trace("minImageTransferGranularity.depth = " + p.minImageTransferGranularity.depth);
+	}
+
 	public static function enumerate( instance : VkInstance) : Array<VkPhysicalDevice> {
 		var devices : Array<VkPhysicalDevice> = new Array<VkPhysicalDevice>();
 		var d : VkPhysicalDevice;
@@ -248,6 +274,16 @@ class VkPhysicalDevice {
 		return d;
 	}
 
+	public function enumerateQueueFamilyProperties() {
+		queueFamilyProperties = new Array<VkQueueFamilyProperties>();
+		var p : VkQueueFamilyProperties;
+		do {
+			p = vkGetPhysicalDeviceQueueFamilyPropertiesNext(ptr);
+			if (p != null)
+				queueFamilyProperties.push(p);
+		} while (p != null);
+	}
+	
 	@:hlNative("vulkan","vk_enumerate_physical_device_next")
 	private static function vkEnumeratePhysicalDeviceNext( instancePtr : VkInstancePtr ) : VkPhysicalDevicePtr {
 		return null;
@@ -257,8 +293,8 @@ class VkPhysicalDevice {
 	private static function vkGetPhysicalDeviceProperties( devicePtr : VkPhysicalDevicePtr, properties : VkPhysicalDeviceProperties) : Void {
 	}
 
-	@:hlNative("vulkan","vk_get_physical_device_queue_family_properties")
-	private static function vkGetPhysicalDeviceQueueFamilyProperties( devicePtr : VkPhysicalDevicePtr ) : hl.NativeArray<VkQueueFamilyProperties> {
+	@:hlNative("vulkan","vk_get_physical_device_queue_family_properties_next")
+	private static function vkGetPhysicalDeviceQueueFamilyPropertiesNext( devicePtr : VkPhysicalDevicePtr ) : VkQueueFamilyProperties {
 		return null;
 	}
 }
