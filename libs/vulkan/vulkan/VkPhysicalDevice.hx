@@ -198,6 +198,10 @@ class VkPhysicalDevice {
 	var deviceName : String;
 	var pipelineCacheUUID : String;
 
+	public function getPtr() : VkPhysicalDevicePtr {
+		return ptr;
+	}
+	
 	public function new( p : VkPhysicalDevicePtr ) {
 		// Store pointer to object
 		ptr = p;
@@ -212,8 +216,12 @@ class VkPhysicalDevice {
 
 		// Print properties and QFP
 		printProperties();
-		for (qfp in queueFamilyProperties)
+		var i : Int = 0;
+		for (qfp in queueFamilyProperties) {
+			trace("Queue " + i);
 			printQueueFamilyProperties(qfp);
+			i++;
+		}
 	}
 
 	private function retrieveProperties() {
@@ -238,7 +246,6 @@ class VkPhysicalDevice {
 	}
 
 	public function printQueueFamilyProperties(p : VkQueueFamilyProperties) {
-		trace("Queue family properties...");
 		var flags : Int = p.queueFlags;
 		var flagsString : String = "";
 		if ((flags & VK_QUEUE_GRAPHICS_BIT)!=0) flagsString += "VK_QUEUE_GRAPHICS_BIT";

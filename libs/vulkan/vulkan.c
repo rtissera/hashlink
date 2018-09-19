@@ -133,6 +133,7 @@ typedef struct
 #define TSDLWINDOW			_ABSTRACT(sdl_window)
 #define TVKINSTANCE			_ABSTRACT(vk_instance)
 #define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
+#define TVKDEVICE			_ABSTRACT(vk_device)
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
 
@@ -324,13 +325,28 @@ HL_PRIM _VkQueueFamilyProperties *HL_NAME(vk_get_physical_device_queue_family_pr
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-HL_PRIM vdynamic *HL_NAME(vk_create_device)( vdynamic *physicalDevice ) {
-	VkDeviceCreateInfo deviceCreateInfo;
-	VkDevice* device = malloc(sizeof(VkDevice));
-	// TODO fill VkDeviceCreateInfo structure
+HL_PRIM VkDevice *HL_NAME(vk_create_device)( VkPhysicalDevice *pPhysicalDevice, int iGfxQueueFamily, int nQueueCount ) {
+    float qPriorities = 1.0f;
+    VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};
+    deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    deviceQueueCreateInfo.queueFamilyIndex = iGfxQueueFamily;
+    deviceQueueCreateInfo.queueCount = nQueueCount;
+    deviceQueueCreateInfo.pQueuePriorities = &qPriorities;
+    
+    /*const char* pDevExt[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };*/
+    
+ 	VkDeviceCreateInfo deviceCreateInfo;
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.enabledExtensionCount = 0;//ARRAY_SIZE_IN_ELEMENTS(pDevExt);
+    deviceCreateInfo.ppEnabledExtensionNames = NULL;//pDevExt;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
 
-	VK_CHECK_RESULT(vkCreateDevice(physicalDevice->v.ptr, &deviceCreateInfo, NULL, device));
-	return alloc_ptr(device);
+	VkDevice* device = malloc(sizeof(VkDevice));
+	VkResult res = vkCreateDevice(*pPhysicalDevice, &deviceCreateInfo, NULL, device);
+	return device;
 }
 
 HL_PRIM vdynamic *HL_NAME(vk_device_wait_idle)( vdynamic *device ) {
@@ -370,4 +386,6 @@ DEFINE_PRIM(_VOID, vk_destroy_instance, TVKINSTANCE);
 DEFINE_PRIM(TVKPHYSICALDEVICE, vk_enumerate_physical_device_next, TVKINSTANCE);
 DEFINE_PRIM(_VOID, vk_get_physical_device_properties, TVKPHYSICALDEVICE TVKPHYSICALDEVICEPROPERTIES)
 DEFINE_PRIM(TVKDEVICEQUEUEFAMILYPROPERTIES, vk_get_physical_device_queue_family_properties_next, TVKPHYSICALDEVICE)
+
+DEFINE_PRIM(TVKDEVICE, vk_create_device, TVKPHYSICALDEVICE _I32 _I32)
 #endif
