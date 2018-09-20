@@ -349,10 +349,8 @@ HL_PRIM VkDevice *HL_NAME(vk_create_device)( VkPhysicalDevice *pPhysicalDevice, 
 	return device;
 }
 
-HL_PRIM vdynamic *HL_NAME(vk_device_wait_idle)( vdynamic *device ) {
-	VkResult result;
-	result = vkDeviceWaitIdle(device->v.ptr);
-	return alloc_i32(result);
+HL_PRIM int HL_NAME(vk_device_wait_idle)( VkDevice *device ) {
+	return vkDeviceWaitIdle(*device);
 }
 
 HL_PRIM void HL_NAME(vk_destroy_device)( VkDevice *device ) {
@@ -388,5 +386,6 @@ DEFINE_PRIM(_VOID, vk_get_physical_device_properties, TVKPHYSICALDEVICE TVKPHYSI
 DEFINE_PRIM(TVKDEVICEQUEUEFAMILYPROPERTIES, vk_get_physical_device_queue_family_properties_next, TVKPHYSICALDEVICE)
 
 DEFINE_PRIM(TVKDEVICE, vk_create_device, TVKPHYSICALDEVICE _I32 _I32)
+DEFINE_PRIM(_I32, vk_device_wait_idle, TVKDEVICE)
 DEFINE_PRIM(_VOID, vk_destroy_device, TVKDEVICE)
 #endif

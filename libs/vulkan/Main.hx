@@ -25,8 +25,10 @@ class Main {
 		}
 		var t : Int = 0;
 		while (t < 10) {
-			Sys.sleep(1);
+			Sys.sleep(0.1);
 			w.present();
+			for (d in devices)
+				trace("WaitIdle result="+d.waitIdle());
 			t++;
 		}
 		for (d in devices)

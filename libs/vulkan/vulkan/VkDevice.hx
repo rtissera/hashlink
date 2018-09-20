@@ -22,11 +22,19 @@ class VkDevice {
 		vkDestroyDevice( ptr );
 	}
 
-	@:hlNative("vulkan","vk_destroy_device")
-	private static function vkDestroyDevice( devicePtr : VkDevicePtr) : Void { }
+	public function waitIdle():haxe.Int32 {
+		return vkDeviceWaitIdle( ptr );
+	}
+
 
 	@:hlNative("vulkan","vk_create_device")
 	private static function vkCreateDevice( physicalDevicePtr : VkPhysicalDevicePtr, iQueueFamilyIndex : Int, nQueueCount : Int ) : VkDevicePtr {
 		return null;
 	}
+
+	@:hlNative("vulkan","vk_destroy_device")
+	private static function vkDestroyDevice( devicePtr : VkDevicePtr) : Void { }
+
+	@:hlNative("vulkan","vk_device_wait_idle")
+	private static function vkDeviceWaitIdle( devicePtr : VkDevicePtr) : haxe.Int32 { return 0; }
 }
