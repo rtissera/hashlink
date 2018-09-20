@@ -355,8 +355,8 @@ HL_PRIM vdynamic *HL_NAME(vk_device_wait_idle)( vdynamic *device ) {
 	return alloc_i32(result);
 }
 
-HL_PRIM void HL_NAME(vk_destroy_device)( vdynamic *device ) {
-	vkDestroyDevice(device->v.ptr, NULL);
+HL_PRIM void HL_NAME(vk_destroy_device)( VkDevice *device ) {
+	vkDestroyDevice(*device, NULL);
 }
 
 // Queues API
@@ -388,4 +388,5 @@ DEFINE_PRIM(_VOID, vk_get_physical_device_properties, TVKPHYSICALDEVICE TVKPHYSI
 DEFINE_PRIM(TVKDEVICEQUEUEFAMILYPROPERTIES, vk_get_physical_device_queue_family_properties_next, TVKPHYSICALDEVICE)
 
 DEFINE_PRIM(TVKDEVICE, vk_create_device, TVKPHYSICALDEVICE _I32 _I32)
+DEFINE_PRIM(_VOID, vk_destroy_device, TVKDEVICE)
 #endif

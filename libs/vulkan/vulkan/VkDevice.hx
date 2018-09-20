@@ -18,7 +18,13 @@ class VkDevice {
 		ptr = vkCreateDevice(physicalDevice.getPtr(), 0, 1); // TODO handle queueIndex / queueCount ??
 	}
 
-	
+	public function destroy():Void {
+		vkDestroyDevice( ptr );
+	}
+
+	@:hlNative("vulkan","vk_destroy_device")
+	private static function vkDestroyDevice( devicePtr : VkDevicePtr) : Void { }
+
 	@:hlNative("vulkan","vk_create_device")
 	private static function vkCreateDevice( physicalDevicePtr : VkPhysicalDevicePtr, iQueueFamilyIndex : Int, nQueueCount : Int ) : VkDevicePtr {
 		return null;

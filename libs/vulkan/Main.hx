@@ -18,14 +18,19 @@ class Main {
 		trace("VkInstance created");
 		var physicalDevices : Array<VkPhysicalDevice> = VkPhysicalDevice.enumerate(instance);
 		trace("Found " + physicalDevices.length + " physical devices !");
+		var devices:Array<VkDevice> = new Array<VkDevice>();
 		for (physicalDevice in physicalDevices)
 		{
-			var d : VkDevice = new VkDevice(physicalDevice);
+			devices.push(new VkDevice(physicalDevice));
 		}
-		while (true) {
+		var t : Int = 0;
+		while (t < 10) {
 			Sys.sleep(1);
 			w.present();
+			t++;
 		}
+		for (d in devices)
+			d.destroy();
 		instance.destroy();
 		trace("VkInstance destroyed");
 	}
