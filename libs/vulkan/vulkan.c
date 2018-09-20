@@ -135,6 +135,7 @@ typedef struct
 #define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
 #define TVKDEVICE			_ABSTRACT(vk_device)
 #define TVKQUEUE			_ABSTRACT(vk_queue)
+#define TVKSURFACEKHR		_ABSTRACT(vk_surface_khr)
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
 
@@ -374,6 +375,16 @@ HL_PRIM int HL_NAME(vk_queue_wait_idle)( VkQueue *queue ) {
 	return vkQueueWaitIdle(*queue);
 }
 
+HL_PRIM VkSurfaceKHR *HL_NAME(vk_create_surface)(SDL_Window* window, VkInstance* instance, int* width, int* height)
+{
+	VkSurfaceKHR* surface = malloc(sizeof(VkSurfaceKHR));
+	SDL_bool result = SDL_Vulkan_CreateSurface(window, *instance, surface);
+	printf("SDL_Vulkan_CreateSurface result=%d\n", result);
+	SDL_Vulkan_GetDrawableSize(window, width, height);
+	printf("SDL_Vulkan_GetDrawableSize w=%d h=%d\n",*width, *height);
+	return surface;
+}
+
 // Command Buffers API
 
 /*HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device )
@@ -395,4 +406,6 @@ DEFINE_PRIM(_VOID, vk_destroy_device, TVKDEVICE)
 
 DEFINE_PRIM(TVKQUEUE, vk_get_device_queue, TVKDEVICE _I32 _I32)
 DEFINE_PRIM(_I32, vk_queue_wait_idle, TVKQUEUE)
+
+DEFINE_PRIM(TVKSURFACEKHR, vk_create_surface, TSDLWINDOW TVKINSTANCE _REF(_I32) _REF(_I32))
 #endif

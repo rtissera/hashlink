@@ -2,6 +2,7 @@ import vulkan.VkInstance;
 import vulkan.VkPhysicalDevice;
 import vulkan.VkDevice;
 import vulkan.VkQueue;
+import vulkan.VkSurface;
 
 import sdl.Sdl;
 import sdl.Window;
@@ -31,6 +32,7 @@ class Main {
 			queues.push(q);
 		}
 		var t : Int = 0;
+		var surface : VkSurface = new VkSurface(w, instance);
 		while (t < 10) {
 			Sys.sleep(0.1);
 			w.present();
