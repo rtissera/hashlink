@@ -139,6 +139,10 @@ typedef struct
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
 
+#ifndef VK_KHR_SURFACE_EXTENSION_NAME
+#define VK_KHR_SURFACE_EXTENSION_NAME	"VK_KHR_surface"
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // Instances API
@@ -176,20 +180,21 @@ HL_PRIM VkInstance* HL_NAME(vk_create_instance)(SDL_Window* window) {
 		return instance;
 	}
 
-	const char **extensionNames = malloc(sizeof(const char *) * extensionCount);
+	const char **extensionNames = malloc(sizeof(const char *) * (extensionCount + 1));
+    extensionNames[0] = VK_KHR_SURFACE_EXTENSION_NAME;
 	if(!extensionNames) {
 		hl_error("Fatal : Cannot allocate extensionNames\n");
 		return instance;
 	}
 
-	if(!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, extensionNames)) {
+	if(!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, &extensionNames[1])) {
 		hl_error("Fatal : SDL_Vulkan_GetInstanceExtensions (2) error\n");
 		free(extensionNames);
 		return instance;
 	}
 
 	// Now we can finish filling VkInstanceCreateInfo structure
-	createInfo.enabledExtensionCount = extensionCount;
+	createInfo.enabledExtensionCount = extensionCount + 1;
 	createInfo.ppEnabledExtensionNames = extensionNames;
 
 	// TODO custom memory allocator ??

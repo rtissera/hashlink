@@ -34,8 +34,8 @@ class Window {
 		while( true ) {
 			win = winCreate(width, height);
 			if( win == null ) throw "Failed to create window";
-			glctx = winGetGLContext(win);
-			/*if( glctx == null || !GL.init() || !testGL() ) {
+			/*glctx = winGetGLContext(win);
+			if( glctx == null || !GL.init() || !testGL() ) {
 				destroy();
 				if( Sdl.onGlContextRetry() ) continue;
 				Sdl.onGlContextError();
