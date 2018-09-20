@@ -18,6 +18,10 @@ class VkDevice {
 		ptr = vkCreateDevice(physicalDevice.getPtr(), 0, 1); // TODO handle queueIndex / queueCount ??
 	}
 
+	public function getPtr() : VkDevicePtr {
+		return ptr;
+	}
+	
 	public function destroy():Void {
 		vkDestroyDevice( ptr );
 	}
@@ -25,7 +29,6 @@ class VkDevice {
 	public function waitIdle():haxe.Int32 {
 		return vkDeviceWaitIdle( ptr );
 	}
-
 
 	@:hlNative("vulkan","vk_create_device")
 	private static function vkCreateDevice( physicalDevicePtr : VkPhysicalDevicePtr, iQueueFamilyIndex : Int, nQueueCount : Int ) : VkDevicePtr {

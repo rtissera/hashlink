@@ -1,6 +1,7 @@
 import vulkan.VkInstance;
 import vulkan.VkPhysicalDevice;
 import vulkan.VkDevice;
+import vulkan.VkQueue;
 
 import sdl.Sdl;
 import sdl.Window;
@@ -23,12 +24,20 @@ class Main {
 		{
 			devices.push(new VkDevice(physicalDevice));
 		}
+		var queues:Array<VkQueue> = new Array<VkQueue>();
+		for (d in devices)
+		{
+			var q : VkQueue = new VkQueue(d, 0, 0); // 1 queue, first index
+			queues.push(q);
+		}
 		var t : Int = 0;
 		while (t < 10) {
 			Sys.sleep(0.1);
 			w.present();
 			for (d in devices)
-				trace("WaitIdle result="+d.waitIdle());
+				trace("Device WaitIdle result="+d.waitIdle());
+			for (q in queues)
+				trace("Queue WaitIdle result="+q.waitIdle());
 			t++;
 		}
 		for (d in devices)

@@ -134,6 +134,7 @@ typedef struct
 #define TVKINSTANCE			_ABSTRACT(vk_instance)
 #define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
 #define TVKDEVICE			_ABSTRACT(vk_device)
+#define TVKQUEUE			_ABSTRACT(vk_queue)
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
 
@@ -357,17 +358,20 @@ HL_PRIM void HL_NAME(vk_destroy_device)( VkDevice *device ) {
 	vkDestroyDevice(*device, NULL);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // Queues API
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-HL_PRIM vdynamic *HL_NAME(vk_get_device_queue)( vdynamic *device, int queueFamilyIndex, int queueIndex) {
-	VkQueue queue;
-	vkGetDeviceQueue(device->v.ptr, queueFamilyIndex, queueIndex, &queue);
-	return alloc_ptr(queue);
+HL_PRIM VkQueue *HL_NAME(vk_get_device_queue)( VkDevice *device, int queueFamilyIndex, int queueIndex) {
+	VkQueue* queue = malloc(sizeof(VkQueue));
+	vkGetDeviceQueue(*device, queueFamilyIndex, queueIndex, queue);
+	return queue;
 }
 
-HL_PRIM vdynamic *HL_NAME(vk_queue_wait_idle)( vdynamic *queue ) {
-	VkResult result = vkQueueWaitIdle(queue->v.ptr);
-	return alloc_i32(result);
+HL_PRIM int HL_NAME(vk_queue_wait_idle)( VkQueue *queue ) {
+	return vkQueueWaitIdle(*queue);
 }
 
 // Command Buffers API
@@ -388,4 +392,7 @@ DEFINE_PRIM(TVKDEVICEQUEUEFAMILYPROPERTIES, vk_get_physical_device_queue_family_
 DEFINE_PRIM(TVKDEVICE, vk_create_device, TVKPHYSICALDEVICE _I32 _I32)
 DEFINE_PRIM(_I32, vk_device_wait_idle, TVKDEVICE)
 DEFINE_PRIM(_VOID, vk_destroy_device, TVKDEVICE)
+
+DEFINE_PRIM(TVKQUEUE, vk_get_device_queue, TVKDEVICE _I32 _I32)
+DEFINE_PRIM(_I32, vk_queue_wait_idle, TVKQUEUE)
 #endif
