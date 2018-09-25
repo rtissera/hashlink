@@ -385,8 +385,9 @@ HL_PRIM VkSurfaceKHR *HL_NAME(vk_create_surface)(SDL_Window* window, VkInstance*
 	VkSurfaceKHR* surface = malloc(sizeof(VkSurfaceKHR));
 	SDL_bool result = SDL_Vulkan_CreateSurface(window, *instance, surface);
 	printf("SDL_Vulkan_CreateSurface result=%d\n", result);
-	SDL_Vulkan_GetDrawableSize(window, width, height);
-	printf("SDL_Vulkan_GetDrawableSize w=%d h=%d\n",*width, *height);
+	SDL_GL_GetDrawableSize/*SDL_Vulkan_GetDrawableSize*/(window, width, height);
+	//printf("SDL_Vulkan_GetDrawableSize w=%d h=%d\n",*width, *height);
+	printf("SDL_GL_GetDrawableSize w=%d h=%d\n",*width, *height);
 	return surface;
 }
 

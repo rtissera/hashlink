@@ -11,15 +11,19 @@ private typedef WinPtr = hl.Abstract<"sdl_window">;
 class VkSurface {
 
 	var ptr : VkSurfacePtr;
-	var width : haxe.Int32;
-	var height : haxe.Int32;
+	var width : Int;
+	var height : Int;
 
 	public function getPtr() : VkSurfacePtr {
 		return ptr;
 	}
 
 	public function new(w : sdl.Window, instance : VkInstance) {
-		ptr = vkCreateSurface(w.getWin(), instance.getPtr(), width, height);
+		var _w = new hl.Ref<Int>(width);
+		var _h = new hl.Ref<Int>(height);
+		ptr = vkCreateSurface(w.getWin(), instance.getPtr(), _w, _h);
+		width = _w.get();
+		height = _h.get();
 		trace("VKSurface created width=" + width + ", height=" + height);
 		trace("SDLWindow width="+w.width+", height="+w.height);
 	}
@@ -29,7 +33,7 @@ class VkSurface {
 	}
 
 	@:hlNative("vulkan", "vk_create_surface")
-	private static function vkCreateSurface(w : WinPtr, instancePtr : VkInstancePtr, width : hl.Ref<haxe.Int32>, height : hl.Ref<haxe.Int32>) : VkSurfacePtr {
+	private static function vkCreateSurface(w : WinPtr, instancePtr : VkInstancePtr, width : hl.Ref<Int>, height : hl.Ref<Int>) : VkSurfacePtr {
 		return null;
 	}
 
