@@ -3,9 +3,8 @@ package vulkan;
 import vulkan.VkInstance;
 import hl.NativeArray;
 
-private typedef VkInstancePtr = hl.Abstract<"vk_instance">;
 private typedef VkPhysicalDevicePtr = hl.Abstract<"vk_physical_device">;
-private typedef VkDevicePtr = hl.Abstract<"vk_device">;
+typedef VkDevicePtr = hl.Abstract<"vk_device">;
 
 @:hlNative("vulkan")
 class VkDevice {
@@ -20,6 +19,10 @@ class VkDevice {
 
 	public function getPtr() : VkDevicePtr {
 		return ptr;
+	}
+	
+	public function getPhysicalDevice() : VkPhysicalDevice {
+		return physicalDevice;
 	}
 	
 	public function destroy():Void {

@@ -2,7 +2,7 @@ package vulkan;
 
 import sdl.Window;
 
-private typedef VkInstancePtr = hl.Abstract<"vk_instance">;
+typedef VkInstancePtr = hl.Abstract<"vk_instance">;
 private typedef WinPtr = hl.Abstract<"sdl_window">;
 
 @:hlNative("vulkan")

@@ -3,6 +3,7 @@ import vulkan.VkPhysicalDevice;
 import vulkan.VkDevice;
 import vulkan.VkQueue;
 import vulkan.VkSurface;
+import vulkan.VkSwapChain;
 
 import sdl.Sdl;
 import sdl.Window;
@@ -33,6 +34,7 @@ class Main {
 		}
 		var t : Int = 0;
 		var surface : VkSurface = new VkSurface(w, instance);
+		var swapchain : VkSwapChain = new VkSwapChain(surface, devices[0]);
 		while (t < 10) {
 			Sys.sleep(0.1);
 			w.present();

@@ -3,8 +3,7 @@ package vulkan;
 import vulkan.VkInstance;
 import hl.NativeArray;
 
-private typedef VkInstancePtr = hl.Abstract<"vk_instance">;
-private typedef VkPhysicalDevicePtr = hl.Abstract<"vk_physical_device">;
+typedef VkPhysicalDevicePtr = hl.Abstract<"vk_physical_device">;
 
 private class VkPhysicalDeviceProperties {
 	public var apiVersion : haxe.Int32;

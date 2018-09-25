@@ -130,12 +130,17 @@ typedef struct
 } _VkQueueFamilyProperties;
 
 
-#define TSDLWINDOW			_ABSTRACT(sdl_window)
-#define TVKINSTANCE			_ABSTRACT(vk_instance)
-#define TVKPHYSICALDEVICE	_ABSTRACT(vk_physical_device)
-#define TVKDEVICE			_ABSTRACT(vk_device)
-#define TVKQUEUE			_ABSTRACT(vk_queue)
-#define TVKSURFACEKHR		_ABSTRACT(vk_surface_khr)
+#define TSDLWINDOW					_ABSTRACT(sdl_window)
+#define TVKINSTANCE					_ABSTRACT(vk_instance)
+#define TVKPHYSICALDEVICE			_ABSTRACT(vk_physical_device)
+#define TVKDEVICE					_ABSTRACT(vk_device)
+#define TVKQUEUE					_ABSTRACT(vk_queue)
+#define TVKSURFACEKHR				_ABSTRACT(vk_surface_khr)
+#define TVKSURFACEFORMATKHR			_ABSTRACT(vk_surface_format_khr)
+#define TVKSURFACECAPABILITIESKHR	_ABSTRACT(vk_surface_capabilities_khr)
+#define TVKPRESENTMODEKHR			_ABSTRACT(vk_present_mode_khr)
+#define TVKSWAPCHAINKHR				_ABSTRACT(vk_swapchain_khr)
+
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
 
@@ -340,14 +345,14 @@ HL_PRIM VkDevice *HL_NAME(vk_create_device)( VkPhysicalDevice *pPhysicalDevice, 
     deviceQueueCreateInfo.queueCount = nQueueCount;
     deviceQueueCreateInfo.pQueuePriorities = &qPriorities;
     
-    /*const char* pDevExt[] = {
+    const char* pDevExt[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };*/
+    };
     
  	VkDeviceCreateInfo deviceCreateInfo;
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.enabledExtensionCount = 0;//ARRAY_SIZE_IN_ELEMENTS(pDevExt);
-    deviceCreateInfo.ppEnabledExtensionNames = NULL;//pDevExt;
+    deviceCreateInfo.enabledExtensionCount = 1;//ARRAY_SIZE_IN_ELEMENTS(pDevExt);
+    deviceCreateInfo.ppEnabledExtensionNames = pDevExt;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
 
@@ -380,6 +385,13 @@ HL_PRIM int HL_NAME(vk_queue_wait_idle)( VkQueue *queue ) {
 	return vkQueueWaitIdle(*queue);
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Surface API
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 HL_PRIM VkSurfaceKHR *HL_NAME(vk_create_surface)(SDL_Window* window, VkInstance* instance, int* width, int* height)
 {
 	VkSurfaceKHR* surface = malloc(sizeof(VkSurfaceKHR));
@@ -391,6 +403,93 @@ HL_PRIM VkSurfaceKHR *HL_NAME(vk_create_surface)(SDL_Window* window, VkInstance*
 	return surface;
 }
 
+HL_PRIM VkSurfaceCapabilitiesKHR * HL_NAME(vk_get_physical_device_surface_capabilities_KHR)(VkPhysicalDevice* device, VkSurfaceKHR* surface)
+{
+	VkSurfaceCapabilitiesKHR* caps = (VkSurfaceCapabilitiesKHR*)malloc(sizeof(VkSurfaceCapabilitiesKHR)); 
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*device, *surface, caps));
+	return caps;
+}
+
+static uint32_t vk_get_physical_device_surface_formats_KHR(VkPhysicalDevice* device, VkSurfaceKHR* surface, VkSurfaceFormatKHR** ppSurfaceFormats)
+{
+	uint32_t nSurfaceFormatCount;
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(*device, *surface, &nSurfaceFormatCount, NULL));
+	*ppSurfaceFormats = malloc(sizeof(VkSurfaceFormatKHR*) * nSurfaceFormatCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(*device, *surface, &nSurfaceFormatCount, *ppSurfaceFormats);
+	return nSurfaceFormatCount;
+}
+
+HL_PRIM VkSurfaceFormatKHR *HL_NAME(vk_get_physical_device_surface_formats_KHR_next)(VkPhysicalDevice* device, VkSurfaceKHR* surface)
+{
+	static VkSurfaceFormatKHR* pSurfaceFormats = NULL;
+	static uint32_t idxSurfaceFormats = 0;
+	static uint32_t nSurfaceFormats = 0;
+	static VkPhysicalDevice* pPhysicalDevice = NULL;
+	static VkSurfaceKHR* pSurface = NULL; 
+	if ((pSurfaceFormats == NULL) || (device != pPhysicalDevice) || (surface != pSurface)) {
+		pPhysicalDevice = device;
+		pSurface = surface;
+		nSurfaceFormats = vk_get_physical_device_surface_formats_KHR(device, surface, &pSurfaceFormats);
+	}
+	if (idxSurfaceFormats < nSurfaceFormats)
+		return &pSurfaceFormats[idxSurfaceFormats++];
+	else {
+		free(pSurfaceFormats);
+		pSurfaceFormats = NULL;
+		idxSurfaceFormats = nSurfaceFormats = 0;
+		return NULL;
+	}
+}
+
+static uint32_t vk_get_physical_device_surface_present_modes_KHR(VkPhysicalDevice* device, VkSurfaceKHR* surface, VkPresentModeKHR** ppPresentModes)
+{
+	uint32_t nPresentModeCount;
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(*device, *surface, &nPresentModeCount, NULL));
+	*ppPresentModes = malloc(sizeof(VkPresentModeKHR*) * nPresentModeCount);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(*device, *surface, &nPresentModeCount, *ppPresentModes);
+	return nPresentModeCount;
+}
+
+HL_PRIM VkPresentModeKHR *HL_NAME(vk_get_physical_device_surface_present_modes_KHR_next)(VkPhysicalDevice* device, VkSurfaceKHR* surface)
+{
+	static VkPresentModeKHR* pPresentModes = NULL;
+	static uint32_t idxPresentMode = 0;
+	static uint32_t nPresentModeCount = 0;
+	static VkPhysicalDevice* pPhysicalDevice = NULL;
+	static VkSurfaceKHR* pSurface = NULL; 
+	if ((pPresentModes == NULL) || (device != pPhysicalDevice) || (surface != pSurface)) {
+		pPhysicalDevice = device;
+		pSurface = surface;
+		nPresentModeCount = vk_get_physical_device_surface_present_modes_KHR(device, surface, &pPresentModes);
+	}
+	if (idxPresentMode < nPresentModeCount)
+		return &pPresentModes[idxPresentMode++];
+	else {
+		free(pPresentModes);
+		pPresentModes = NULL;
+		idxPresentMode = nPresentModeCount = 0;
+		return NULL;
+	}
+}
+
+HL_PRIM VkSwapchainKHR *HL_NAME(vk_create_swapchain_KHR)(VkDevice* device, VkSurfaceKHR* surface)
+{
+	VkSwapchainKHR* swapChain = (VkSwapchainKHR*)malloc(sizeof(VkSwapchainKHR));
+	VkSwapchainCreateInfoKHR createInfo;
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = *surface;
+	createInfo.minImageCount = 2;
+	createInfo.imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	createInfo.imageArrayLayers = 1;
+	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	createInfo.clipped = true;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	VK_CHECK_RESULT(vkCreateSwapchainKHR(*device, &createInfo, NULL, swapChain));
+	return swapChain;
+}
 // Command Buffers API
 
 /*HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device )
@@ -414,4 +513,10 @@ DEFINE_PRIM(TVKQUEUE, vk_get_device_queue, TVKDEVICE _I32 _I32)
 DEFINE_PRIM(_I32, vk_queue_wait_idle, TVKQUEUE)
 
 DEFINE_PRIM(TVKSURFACEKHR, vk_create_surface, TSDLWINDOW TVKINSTANCE _REF(_I32) _REF(_I32))
+
+DEFINE_PRIM(TVKSURFACECAPABILITIESKHR, vk_get_physical_device_surface_capabilities_KHR, TVKPHYSICALDEVICE TVKSURFACEKHR)
+DEFINE_PRIM(TVKSURFACEFORMATKHR, vk_get_physical_device_surface_formats_KHR_next, TVKPHYSICALDEVICE TVKSURFACEKHR)
+DEFINE_PRIM(TVKPRESENTMODEKHR, vk_get_physical_device_surface_present_modes_KHR_next, TVKPHYSICALDEVICE TVKSURFACEKHR)
+
+DEFINE_PRIM(TVKSWAPCHAINKHR, vk_create_swapchain_KHR, TVKDEVICE TVKSURFACEKHR)
 #endif

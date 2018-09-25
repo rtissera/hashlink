@@ -3,7 +3,7 @@ package vulkan;
 import sdl.Window;
 import vulkan.VkInstance;
 
-private typedef VkSurfacePtr = hl.Abstract<"vk_surface_khr">;
+typedef VkSurfacePtr = hl.Abstract<"vk_surface_khr">;
 private typedef VkInstancePtr = hl.Abstract<"vk_instance">;
 private typedef WinPtr = hl.Abstract<"sdl_window">;
 
