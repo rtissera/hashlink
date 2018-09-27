@@ -48,8 +48,8 @@ class Main {
 		for (i in images)
 			imageViews.push(new VkImageView(devices[0], i));
 
-		var vertexShader : VkShaderModule = new VkShaderModule(devices[0], sys.io.File.getBytes("shaders/vertexShader"));
-		var fragmentShader : VkShaderModule = new VkShaderModule(devices[0], sys.io.File.getBytes("shaders/fragmentShader"));
+		var vertexShader : VkShaderModule = new VkShaderModule(devices[0], sys.io.File.getBytes("shaders/vert.spv"));
+		var fragmentShader : VkShaderModule = new VkShaderModule(devices[0], sys.io.File.getBytes("shaders/frag.spv"));
 
 		// Pseudo rendering...
 		while (t < 10) {

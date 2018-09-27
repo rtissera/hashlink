@@ -17,10 +17,11 @@ class VkShaderModule {
 		return ptr;
 	}
 
-	public function new(d : VkDevice, c : Bytes) {
+	public function new(d : VkDevice, c : haxe.io.Bytes) {
 		device = d;
 		code = c;
-		ptr = vkCreateShaderModule(device.getPtr(), hl.Bytes.fromBytes(code));
+		var data : hl.Bytes = hl.Bytes.fromBytes(code);
+		ptr = vkCreateShaderModule(device.getPtr(), data, c.length);
 	}
 
 	public function destroy() {
@@ -28,7 +29,7 @@ class VkShaderModule {
 	}
 
 	@:hlNative("vulkan", "vk_create_shader_module")
-	private static function vkCreateShaderModule(devicePtr : VkDevicePtr, code : hl.Bytes) : VkShaderModulePtr {
+	private static function vkCreateShaderModule(devicePtr : VkDevicePtr, code : hl.Bytes, len : Int) : VkShaderModulePtr {
 		return null;
 	}
 

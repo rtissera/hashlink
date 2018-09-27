@@ -142,6 +142,7 @@ typedef struct
 #define TVKSWAPCHAINKHR				_ABSTRACT(vk_swapchain_khr)
 #define TVKIMAGE					_ABSTRACT(vk_image)
 #define TVKIMAGEVIEW				_ABSTRACT(vk_image_view)
+#define TVKSHADERMODULE				_ABSTRACT(vk_shader_module)
 
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
@@ -555,6 +556,22 @@ HL_PRIM void HL_NAME(vk_destroy_image_view)(VkDevice* device, VkImageView* image
 	vkDestroyImageView(*device, *imageView, NULL);
 }
 
+HL_PRIM VkShaderModule *HL_NAME(vk_create_shader_module)(VkDevice* device, const void* data, int size)
+{
+	VkShaderModule* shaderModule = malloc(sizeof(VkShaderModule));
+	VkShaderModuleCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = size;
+	createInfo.pCode = (const uint32_t*)data;
+	VK_CHECK_RESULT(vkCreateShaderModule(*device, &createInfo, NULL, shaderModule));
+	return shaderModule;
+}
+
+HL_PRIM void HL_NAME(vk_destroy_shader_module)(VkDevice* device, VkShaderModule* module)
+{
+	vkDestroyShaderModule(*device, *module, NULL);
+}
+
 // Command Buffers API
 
 /*HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device )
@@ -585,9 +602,12 @@ DEFINE_PRIM(TVKPRESENTMODEKHR, vk_get_physical_device_surface_present_modes_KHR_
 
 DEFINE_PRIM(TVKSWAPCHAINKHR, vk_create_swapchain_KHR, TVKDEVICE TVKSURFACEKHR)
 DEFINE_PRIM(_VOID, vk_destroy_swapchain_KHR, TVKDEVICE TVKSWAPCHAINKHR)
-
 DEFINE_PRIM(TVKIMAGE, vk_get_swapchain_images_KHR_next, TVKDEVICE TVKSWAPCHAINKHR)
 
 DEFINE_PRIM(TVKIMAGEVIEW, vk_create_image_view, TVKDEVICE TVKIMAGE)
 DEFINE_PRIM(_VOID, vk_destroy_image_view, TVKDEVICE TVKIMAGEVIEW)
+
+DEFINE_PRIM(TVKSHADERMODULE, vk_create_shader_module, TVKDEVICE _BYTES _I32)
+DEFINE_PRIM(_VOID, vk_destroy_shader_module, TVKDEVICE TVKSHADERMODULE)
+
 #endif
