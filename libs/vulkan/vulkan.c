@@ -140,6 +140,8 @@ typedef struct
 #define TVKSURFACECAPABILITIESKHR	_ABSTRACT(vk_surface_capabilities_khr)
 #define TVKPRESENTMODEKHR			_ABSTRACT(vk_present_mode_khr)
 #define TVKSWAPCHAINKHR				_ABSTRACT(vk_swapchain_khr)
+#define TVKIMAGE					_ABSTRACT(vk_image)
+#define TVKIMAGEVIEW				_ABSTRACT(vk_image_view)
 
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
@@ -472,6 +474,37 @@ HL_PRIM VkPresentModeKHR *HL_NAME(vk_get_physical_device_surface_present_modes_K
 	}
 }
 
+static uint32_t vk_get_swapchain_images_KHR(VkDevice* device, VkSwapchainKHR* swapchain, VkImage** ppImages)
+{
+	uint32_t nImageCount;
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(*device, *swapchain, &nImageCount, NULL));
+	*ppImages = malloc(sizeof(VkImage*) * nImageCount);
+	vkGetSwapchainImagesKHR(*device, *swapchain, &nImageCount, *ppImages);
+	return nImageCount;
+}
+
+HL_PRIM VkImage *HL_NAME(vk_get_swapchain_images_KHR_next)(VkDevice* device, VkSwapchainKHR* swapchain)
+{
+	static VkImage* pImages = NULL;
+	static uint32_t idxImage = 0;
+	static uint32_t nImageCount = 0;
+	static VkDevice* pDevice = NULL;
+	static VkSwapchainKHR* pSwapchain = NULL; 
+	if ((pImages == NULL) || (device != pDevice) || (swapchain != pSwapchain)) {
+		pDevice = device;
+		pSwapchain = swapchain;
+		nImageCount = vk_get_swapchain_images_KHR(device, swapchain, &pImages);
+	}
+	if (idxImage < nImageCount)
+		return &pImages[idxImage++];
+	else {
+		free(pImages);
+		pImages = NULL;
+		idxImage = nImageCount = 0;
+		return NULL;
+	}
+}
+
 HL_PRIM VkSwapchainKHR *HL_NAME(vk_create_swapchain_KHR)(VkDevice* device, VkSurfaceKHR* surface)
 {
 	VkSwapchainKHR* swapChain = (VkSwapchainKHR*)malloc(sizeof(VkSwapchainKHR));
@@ -490,6 +523,38 @@ HL_PRIM VkSwapchainKHR *HL_NAME(vk_create_swapchain_KHR)(VkDevice* device, VkSur
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(*device, &createInfo, NULL, swapChain));
 	return swapChain;
 }
+
+HL_PRIM void HL_NAME(vk_destroy_swapchain_KHR)(VkDevice* device, VkSwapchainKHR* swapchain)
+{
+	vkDestroySwapchainKHR(*device, *swapchain, NULL);
+}
+
+HL_PRIM VkImageView *HL_NAME(vk_create_image_view)(VkDevice* device, VkImage* image)
+{
+	VkImageView* vkImageView = malloc(sizeof(VkImageView));
+	VkImageViewCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	createInfo.image = *image;
+	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	createInfo.format = VK_FORMAT_B8G8R8A8_UNORM; //swapChainImageFormat;
+	createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+	createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = 1;
+	VK_CHECK_RESULT(vkCreateImageView(*device, &createInfo, NULL, vkImageView));
+	return vkImageView;
+}
+
+HL_PRIM void HL_NAME(vk_destroy_image_view)(VkDevice* device, VkImageView* imageView)
+{
+	vkDestroyImageView(*device, *imageView, NULL);
+}
+
 // Command Buffers API
 
 /*HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device )
@@ -519,4 +584,10 @@ DEFINE_PRIM(TVKSURFACEFORMATKHR, vk_get_physical_device_surface_formats_KHR_next
 DEFINE_PRIM(TVKPRESENTMODEKHR, vk_get_physical_device_surface_present_modes_KHR_next, TVKPHYSICALDEVICE TVKSURFACEKHR)
 
 DEFINE_PRIM(TVKSWAPCHAINKHR, vk_create_swapchain_KHR, TVKDEVICE TVKSURFACEKHR)
+DEFINE_PRIM(_VOID, vk_destroy_swapchain_KHR, TVKDEVICE TVKSWAPCHAINKHR)
+
+DEFINE_PRIM(TVKIMAGE, vk_get_swapchain_images_KHR_next, TVKDEVICE TVKSWAPCHAINKHR)
+
+DEFINE_PRIM(TVKIMAGEVIEW, vk_create_image_view, TVKDEVICE TVKIMAGE)
+DEFINE_PRIM(_VOID, vk_destroy_image_view, TVKDEVICE TVKIMAGEVIEW)
 #endif

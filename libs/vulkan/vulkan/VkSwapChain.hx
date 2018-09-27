@@ -10,9 +10,12 @@ private typedef VkSurfaceCapabilitiesPtr = hl.Abstract<"vk_surface_capabilities_
 private typedef VkSurfaceFormatPtr = hl.Abstract<"vk_surface_format_khr">; //VkSurfaceFormatKHR
 private typedef VkPresentModePtr = hl.Abstract<"vk_present_mode_khr">; //VkPresentModeKHR
 private typedef VkSwapChainPtr = hl.Abstract<"vk_swapchain_khr">; //VkSwapChainKHR
+typedef VkImagePtr = hl.Abstract<"vk_image">; // VkImage
+
 @:hlNative("vulkan")
 class VkSwapChain {
 
+	var ptr : VkSwapChainPtr;
 
 	var device : VkDevice;
 	var surface : VkSurface;
@@ -20,7 +23,8 @@ class VkSwapChain {
 	var capabilities : VkSurfaceCapabilitiesPtr;
 	var formats : Array<VkSurfaceFormatPtr>;
 	var presentModes : Array<VkPresentModePtr>;
-	var ptr : VkSwapChainPtr;
+
+	var images : Array<VkImagePtr>;
 
 	public function getPtr() : VkSwapChainPtr {
 		return ptr;
@@ -34,6 +38,10 @@ class VkSwapChain {
 		return surface;
 	}
 
+	public function getImages() : Array<VkImagePtr> {
+		return images;
+	}
+
 	public function new(s : VkSurface, d : VkDevice) {
 		surface = s;
 		device = d;
@@ -42,6 +50,7 @@ class VkSwapChain {
 		enumerateFormats(physDevice.getPtr(), surface.getPtr());
 		enumerateModes(physDevice.getPtr(), surface.getPtr());
 		createSwapChain();
+		retrieveImages();
 	}
 
 	private function retrieveCapabilities(physDevice : VkPhysicalDevice, surface : VkSurface) {
@@ -50,22 +59,22 @@ class VkSwapChain {
 
 	private function enumerateFormats(physDevicePtr : VkPhysicalDevicePtr, surfacePtr : VkSurfacePtr) {
 		formats = new Array<VkSurfaceFormatPtr>();
-		var ptr : VkSurfaceFormatPtr = null;
+		var surfaceFormatPtr : VkSurfaceFormatPtr = null;
 		do {
-			ptr = vkGetPhysicalDeviceSurfaceFormatsKHR(physDevicePtr, surfacePtr);
-			if (ptr != null)
-				formats.push(ptr);
-		} while (ptr != null);
+			surfaceFormatPtr = vkGetPhysicalDeviceSurfaceFormatsKHR(physDevicePtr, surfacePtr);
+			if (surfaceFormatPtr != null)
+				formats.push(surfaceFormatPtr);
+		} while (surfaceFormatPtr != null);
 	}
 
 	private function enumerateModes(physDevicePtr : VkPhysicalDevicePtr, surfacePtr : VkSurfacePtr) {
 		presentModes = new Array<VkPresentModePtr>();
-		var ptr : VkPresentModePtr = null;
+		var presentModePtr : VkPresentModePtr = null;
 		do {
-			ptr = vkGetPhysicalDeviceSurfacePresentModesKHR(physDevicePtr, surfacePtr);
-			if (ptr != null)
-				presentModes.push(ptr);
-		} while (ptr != null);
+			presentModePtr = vkGetPhysicalDeviceSurfacePresentModesKHR(physDevicePtr, surfacePtr);
+			if (presentModePtr != null)
+				presentModes.push(presentModePtr);
+		} while (presentModePtr != null);
 	}
 
 	private function createSwapChain() {
@@ -73,8 +82,27 @@ class VkSwapChain {
 		ptr = vkCreateSwapChainKHR(device.getPtr(), surface.getPtr());
 	}
 
+	private function retrieveImages() {
+		images = new Array<VkImagePtr>();
+		var imagePtr : VkImagePtr = null;
+		do {
+			imagePtr = vkGetSwapchainImagesKHR(device.getPtr(), ptr);
+			if (imagePtr != null)
+				images.push(imagePtr);
+		} while (imagePtr != null);
+	}
+
 	public function destroy() {
-		// TODO 
+		vkDestroySwapchainKHR(device.getPtr(), ptr);
+	}
+
+	@:hlNative("vulkan", "vk_get_swapchain_images_KHR_next")
+	private static function vkGetSwapchainImagesKHR(devicePtr : VkDevicePtr, swapchainPtr : VkSwapChainPtr) : VkImagePtr {
+		return null;
+	}
+
+	@:hlNative("vulkan", "vk_destroy_swapchain_KHR")
+	private static function vkDestroySwapchainKHR(devicePtr : VkDevicePtr, swapchainPtr : VkSwapChainPtr) : Void {
 	}
 
 	@:hlNative("vulkan", "vk_get_physical_device_surface_capabilities_KHR")
