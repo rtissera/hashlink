@@ -143,6 +143,7 @@ typedef struct
 #define TVKIMAGE					_ABSTRACT(vk_image)
 #define TVKIMAGEVIEW				_ABSTRACT(vk_image_view)
 #define TVKSHADERMODULE				_ABSTRACT(vk_shader_module)
+#define TVKRENDERPASS				_ABSTRACT(vk_render_pass)
 
 #define TVKPHYSICALDEVICEPROPERTIES _OBJ(_I32 _I32 _I32 _I32 _I32 _BYTES _BYTES)
 #define TVKDEVICEQUEUEFAMILYPROPERTIES _OBJ(_I32 _I32 _I32 _OBJ(_I32 _I32 _I32))
@@ -572,6 +573,16 @@ HL_PRIM void HL_NAME(vk_destroy_shader_module)(VkDevice* device, VkShaderModule*
 	vkDestroyShaderModule(*device, *module, NULL);
 }
 
+HL_PRIM VkRenderPass *HL_NAME(vk_create_render_pass)(VkDevice* device)
+{
+	// TODO
+	return NULL;
+}
+
+HL_PRIM void HL_NAME(vk_destroy_render_pass)(VkDevice* device, VkRenderPass* renderPass)
+{
+	// TODO
+}
 // Command Buffers API
 
 /*HL_PRIM vdynamic *HL_NAME(vk_create_command_pool)( vdynamic *device )
@@ -610,4 +621,6 @@ DEFINE_PRIM(_VOID, vk_destroy_image_view, TVKDEVICE TVKIMAGEVIEW)
 DEFINE_PRIM(TVKSHADERMODULE, vk_create_shader_module, TVKDEVICE _BYTES _I32)
 DEFINE_PRIM(_VOID, vk_destroy_shader_module, TVKDEVICE TVKSHADERMODULE)
 
+DEFINE_PRIM(TVKRENDERPASS, vk_create_render_pass, TVKDEVICE)
+DEFINE_PRIM(_VOID, vk_destroy_render_pass, TVKDEVICE TVKRENDERPASS)
 #endif
