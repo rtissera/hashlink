@@ -343,7 +343,7 @@ HL_PRIM _VkQueueFamilyProperties *HL_NAME(vk_get_physical_device_queue_family_pr
 
 HL_PRIM VkDevice *HL_NAME(vk_create_device)( VkPhysicalDevice *pPhysicalDevice, int iGfxQueueFamily, int nQueueCount ) {
     float qPriorities = 1.0f;
-    VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};
+	VkDeviceQueueCreateInfo deviceQueueCreateInfo;
     deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     deviceQueueCreateInfo.queueFamilyIndex = iGfxQueueFamily;
     deviceQueueCreateInfo.queueCount = nQueueCount;
@@ -534,7 +534,7 @@ HL_PRIM void HL_NAME(vk_destroy_swapchain_KHR)(VkDevice* device, VkSwapchainKHR*
 HL_PRIM VkImageView *HL_NAME(vk_create_image_view)(VkDevice* device, VkImage* image)
 {
 	VkImageView* vkImageView = malloc(sizeof(VkImageView));
-	VkImageViewCreateInfo createInfo = {};
+	VkImageViewCreateInfo createInfo;
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	createInfo.image = *image;
 	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -560,7 +560,7 @@ HL_PRIM void HL_NAME(vk_destroy_image_view)(VkDevice* device, VkImageView* image
 HL_PRIM VkShaderModule *HL_NAME(vk_create_shader_module)(VkDevice* device, const void* data, int size)
 {
 	VkShaderModule* shaderModule = malloc(sizeof(VkShaderModule));
-	VkShaderModuleCreateInfo createInfo = {};
+	VkShaderModuleCreateInfo createInfo;
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = size;
 	createInfo.pCode = (const uint32_t*)data;
